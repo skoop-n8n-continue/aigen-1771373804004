@@ -12,6 +12,7 @@ let currentBatchIndex = 0;
 // INITIALIZATION
 // ====================================================
 async function init() {
+  console.log("Initializing template...");
   await loadProducts();
   
   // Initialize Background Animations
@@ -19,14 +20,26 @@ async function init() {
   initDecor();
 
   // Start the first cycle
-  startCycle(0);
+  if (PRODUCTS.length > 0) {
+    console.log("Starting cycle with " + PRODUCTS.length + " products.");
+    startCycle(0);
+  } else {
+    console.error("No products loaded. Cycle aborted.");
+    // Optional: Show a "No Products" message on UI
+    const container = document.getElementById('products-container');
+    container.innerHTML = '<div style="color:white; font-size: 30px; text-align:center; margin-top: 400px;">No Products Loaded</div>';
+  }
 }
 
 async function loadProducts() {
   try {
     const response = await fetch('./products.json');
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
     const data = await response.json();
     PRODUCTS = data.products || [];
+    console.log("Products loaded:", PRODUCTS);
   } catch (error) {
     console.error('Failed to load products.json:', error);
     PRODUCTS = [];
@@ -154,7 +167,7 @@ function createProductCard(product) {
   
   // Price formatting
   let priceDisplay = `<span class="product-price">$${product.price}</span>`;
-  if (product.discounted_price > 0 && product.discounted_price < product.price) {
+  if (product.discounted_price > 0 && product.discounted_price < parseFloat(product.price.replace('$',''))) {
     priceDisplay = `
       <span class="product-old-price">$${product.price}</span>
       <span class="product-price">$${product.discounted_price}</span>
@@ -184,6 +197,8 @@ function startCycle(batchIndex) {
   const container = document.getElementById('products-container');
   const batch = getBatch(batchIndex);
   
+  if (batch.length === 0) return;
+
   // Clear previous cycle
   container.innerHTML = ''; 
 
@@ -233,32 +248,29 @@ function startCycle(batchIndex) {
     rotation: 0,
     duration: 3,
     stagger: 0.3,
-    ease: "power2.out"
-  });
-
-  // 2. Idle: Bobbing & Drift (Parallel Tween)
-  // We add this tween to the timeline but with a long duration to cover the "Hold" phase
-  // Actually, for continuous bobbing, it's better to start a separate infinite tween
-  // that we kill later, OR just use yoyo on the timeline.
-  
-  // Let's use a separate loop for the bobbing so it doesn't block the timeline
-  cards.forEach((card, i) => {
-    // Bobbing (Y-axis)
-    gsap.to(card, {
-      y: "+=15",
-      duration: 2.5 + (i * 0.2),
-      yoyo: true,
-      repeat: -1,
-      ease: "sine.inOut",
-      delay: Math.random() // Random offset
-    });
-    
-    // Slight drift (X-axis)
-    gsap.to(card, {
-      x: "+=20",
-      duration: CYCLE_DURATION + 3,
-      ease: "none"
-    });
+    ease: "power2.out",
+    onComplete: () => {
+       // START IDLE ANIMATION
+       // We start this only after entrance is complete to avoid conflict
+       cards.forEach((card, i) => {
+         // Bobbing (Y-axis)
+         gsap.to(card, {
+           y: "+=15",
+           duration: 2.5 + (i * 0.2),
+           yoyo: true,
+           repeat: -1,
+           ease: "sine.inOut",
+           delay: Math.random() * 0.5
+         });
+         
+         // Slight drift (X-axis)
+         gsap.to(card, {
+           x: "+=20",
+           duration: CYCLE_DURATION,
+           ease: "none"
+         });
+       });
+    }
   });
 
   // 3. Hold Phase
@@ -266,16 +278,14 @@ function startCycle(batchIndex) {
 
   // 4. Exit: Float away to right
   tl.to(cards, {
+    overwrite: true, // CRITICAL: Kill the idle tweens so they don't fight the exit
     x: "+=1500", // Move way off screen right
     opacity: 0,
     scale: 0.9,
     rotation: 5,
     duration: 2.5,
     stagger: 0.1,
-    ease: "power2.in",
-    onStart: () => {
-        // Optional: stop bobbing if needed, but it looks fine to keep bobbing while leaving
-    }
+    ease: "power2.in"
   });
 }
 
