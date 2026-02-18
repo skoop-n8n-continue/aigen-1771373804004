@@ -2,7 +2,7 @@
 // DESIGN CONFIG
 // ====================================================
 const PRODUCTS_PER_CYCLE = 3;
-const CYCLE_DURATION = 6; // Seconds to hold products on screen
+const CYCLE_DURATION = 8; // Seconds to hold products on screen (Increased for better visibility)
 const TRANSITION_DURATION = 2.5; // Entrance/Exit speed
 
 let PRODUCTS = [];
@@ -25,9 +25,9 @@ async function init() {
     startCycle(0);
   } else {
     console.error("No products loaded. Cycle aborted.");
-    // Optional: Show a "No Products" message on UI
+    // Show a "No Products" message on UI
     const container = document.getElementById('products-container');
-    container.innerHTML = '<div style="color:white; font-size: 30px; text-align:center; margin-top: 400px;">No Products Loaded</div>';
+    container.innerHTML = '<div style="color:rgba(255,255,255,0.5); font-size: 30px; text-align:center; margin-top: 400px; font-family: sans-serif;">Waiting for products...</div>';
   }
 }
 
@@ -166,11 +166,11 @@ function createProductCard(product) {
   card.className = 'product-card';
   
   // Price formatting
-  let priceDisplay = `<span class="product-price">$${product.price}</span>`;
+  let priceDisplay = `<span class="product-price">${product.price}</span>`;
   if (product.discounted_price > 0 && product.discounted_price < parseFloat(product.price.replace('$',''))) {
     priceDisplay = `
-      <span class="product-old-price">$${product.price}</span>
-      <span class="product-price">$${product.discounted_price}</span>
+      <span class="product-old-price">${product.price}</span>
+      <span class="product-price">${product.discounted_price}</span>
     `;
   }
 
@@ -209,7 +209,7 @@ function startCycle(batchIndex) {
   const totalWidth = (cardWidth * PRODUCTS_PER_CYCLE) + (gap * (PRODUCTS_PER_CYCLE - 1));
   const startX = (1920 - totalWidth) / 2;
 
-  // Create elements
+  // Create elements and set initial state
   batch.forEach((product, i) => {
     const card = createProductCard(product);
     container.appendChild(card);
@@ -218,72 +218,66 @@ function startCycle(batchIndex) {
     const finalX = startX + (i * (cardWidth + gap));
     const finalY = 280; // Vertically centered
 
-    // Store target in dataset for GSAP to read
-    card.dataset.finalX = finalX;
+    // Store target strictly on the object
+    card._finalX = finalX;
 
-    // Set Initial State (Off-screen Left, submerged)
+    // Set Initial State (Off-screen Left)
     gsap.set(card, { 
-      x: -600 - (i * 150), // Staggered start positions off-screen
-      y: finalY + 50, // Slightly lower (submerged effect)
+      x: -500 - (i * 200), // Staggered start positions off-screen left
+      y: finalY,
       opacity: 0,
-      scale: 0.9,
+      scale: 0.8,
       rotation: -5
+    });
+    
+    // Continuous gentle bobbing (Independent of timeline, killed on exit)
+    // We add this immediately so it's active during entrance too
+    gsap.to(card, {
+        y: "+=20",
+        duration: 2 + (i * 0.3),
+        yoyo: true,
+        repeat: -1,
+        ease: "sine.inOut",
+        delay: Math.random() // Random phase
     });
   });
 
   // Master Timeline
   const tl = gsap.timeline({
     onComplete: () => {
+      // Clean up ANY remaining tweens on these cards before removing
+      gsap.killTweensOf(cards);
       // Recursively call next batch
       startCycle(batchIndex + 1);
     }
   });
 
-  // 1. Entrance: Float in from left
+  // 1. Entrance: Float in to center
   tl.to(cards, {
-    x: (i, target) => parseFloat(target.dataset.finalX),
-    y: 280,
+    x: (i) => cards[i]._finalX,
     opacity: 1,
     scale: 1,
     rotation: 0,
     duration: 3,
-    stagger: 0.3,
-    ease: "power2.out",
-    onComplete: () => {
-       // START IDLE ANIMATION
-       // We start this only after entrance is complete to avoid conflict
-       cards.forEach((card, i) => {
-         // Bobbing (Y-axis)
-         gsap.to(card, {
-           y: "+=15",
-           duration: 2.5 + (i * 0.2),
-           yoyo: true,
-           repeat: -1,
-           ease: "sine.inOut",
-           delay: Math.random() * 0.5
-         });
-         
-         // Slight drift (X-axis)
-         gsap.to(card, {
-           x: "+=20",
-           duration: CYCLE_DURATION,
-           ease: "none"
-         });
-       });
-    }
+    stagger: 0.2,
+    ease: "power3.out" // Strong easing out to ensure they stop
   });
 
-  // 3. Hold Phase
-  tl.to({}, { duration: CYCLE_DURATION });
-
-  // 4. Exit: Float away to right
+  // 2. Idle Drift: Slowly drift right while waiting
+  // This ensures they are "moving down the river" but very slowly
   tl.to(cards, {
-    overwrite: true, // CRITICAL: Kill the idle tweens so they don't fight the exit
-    x: "+=1500", // Move way off screen right
+    x: "+=60", // Move 60px right over 8 seconds
+    duration: CYCLE_DURATION,
+    ease: "none"
+  }, "-=0.5"); // Start slightly before entrance finishes
+
+  // 3. Exit: Float away to right rapidly
+  tl.to(cards, {
+    x: (i) => 1920 + 200 + (i * 100), // Definitively off-screen right
     opacity: 0,
     scale: 0.9,
     rotation: 5,
-    duration: 2.5,
+    duration: 2,
     stagger: 0.1,
     ease: "power2.in"
   });
