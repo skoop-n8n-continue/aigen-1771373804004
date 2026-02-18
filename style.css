@@ -1,0 +1,277 @@
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #1a1a1a;
+  font-family: 'Lato', sans-serif;
+  color: #2F3E30;
+}
+
+#scene {
+  width: 1920px;
+  height: 1080px;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+}
+
+/* --- Layer 1: Riverbed --- */
+#riverbed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('https://skoop-general.s3.us-east-1.amazonaws.com/n8n_image_gen%2Fzen_riverbed_bg-1771373893884.png');
+  background-size: cover;
+  background-position: center;
+  z-index: 1;
+  /* subtle zoom for immersion */
+  transform: scale(1.1);
+}
+
+/* --- Layer 2: Water Flow --- */
+.water-layer {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background-image: url('https://skoop-general.s3.us-east-1.amazonaws.com/n8n_image_gen%2Fwater_texture_overlay-1771373918270.png');
+  background-size: 1000px 1000px; /* Repeat texture */
+  background-repeat: repeat;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.4;
+  mix-blend-mode: soft-light;
+}
+
+.layer-2 {
+  opacity: 0.3;
+  mix-blend-mode: overlay;
+  /* Offset for parallax */
+  top: -30%; 
+  left: -30%;
+  transform: rotate(15deg); 
+}
+
+/* --- Layer 3: Decor --- */
+#decor-container {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.floating-lotus {
+  position: absolute;
+  width: 150px;
+  height: auto;
+  opacity: 0.9;
+  filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3));
+}
+
+/* --- Layer 4: Products --- */
+#products-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 4;
+  /* We align items via GSAP absolute positioning */
+}
+
+.product-card {
+  position: absolute;
+  width: 380px;
+  /* Height auto based on content, but fixed min-height for uniformity */
+  min-height: 500px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 24px;
+  padding: 30px;
+  box-shadow: 
+    0 15px 35px rgba(0, 0, 0, 0.1),
+    0 5px 15px rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transform-origin: center center;
+  opacity: 0; /* Animated in */
+}
+
+/* Image Container */
+.product-image-wrapper {
+  width: 100%;
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.product-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.15));
+  transition: transform 0.5s ease;
+}
+
+/* Text Content */
+.product-info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.product-vendor {
+  font-family: 'Lato', sans-serif;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #8A9A5B; /* Sage Green */
+  font-weight: 700;
+}
+
+.product-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  line-height: 1.2;
+  color: #2F3E30; /* Dark Sage */
+  font-weight: 700;
+  margin-bottom: 5px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-meta {
+  font-family: 'Lato', sans-serif;
+  font-size: 16px;
+  color: #666;
+  font-style: italic;
+}
+
+.product-price-wrapper {
+  margin-top: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+
+.product-price {
+  font-family: 'Playfair Display', serif;
+  font-size: 32px;
+  color: #C5A059; /* Soft Gold */
+  font-weight: 700;
+}
+
+.product-old-price {
+  font-family: 'Lato', sans-serif;
+  font-size: 18px;
+  color: #999;
+  text-decoration: line-through;
+}
+
+.strain-badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: rgba(138, 154, 91, 0.2); /* Sage transparent */
+  color: #5d6b3e;
+  border: 1px solid rgba(138, 154, 91, 0.3);
+}
+
+/* --- Layer 5: UI --- */
+#ui-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none;
+  padding: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.header {
+  text-align: center; 
+  /* Or top left? Let's go top center for 'spa menu' feel */
+  position: absolute;
+  top: 50px;
+  left: 0;
+  width: 100%;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.brand-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 48px;
+  color: #fff; /* White for contrast on dark water/stone */
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.brand-subtitle {
+  font-family: 'Lato', sans-serif;
+  font-size: 18px;
+  color: rgba(255,255,255,0.9);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+
+.footer {
+  position: absolute;
+  bottom: 40px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 80px;
+  color: rgba(255,255,255,0.8);
+  font-family: 'Lato', sans-serif;
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* --- Atmosphere --- */
+.overlay-atmosphere {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  background: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.4) 100%);
+  mix-blend-mode: multiply;
+}
+
+/* Utility for dynamic cycling */
+.hidden {
+  display: none;
+}
